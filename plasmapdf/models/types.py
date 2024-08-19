@@ -14,7 +14,8 @@ from __future__ import annotations
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import enum
-from typing import Optional, TypedDict, Union
+from typing import Optional, Union
+from typing_extensions import TypedDict
 
 from typing_extensions import NotRequired
 

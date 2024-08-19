@@ -1,7 +1,8 @@
 import logging
-from typing import TypedDict, Union, cast
+from typing import Union, cast
+from typing_extensions import TypedDict
 
-import pydantic
+from pydantic import TypeAdapter, ValidationError
 
 from plasmapdf.models.types import (
     OpenContractsDocAnalysisResult,
@@ -12,17 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 def is_dict_instance_of_typed_dict(instance: dict, typed_dict: type[TypedDict]):
-
     # validate with pydantic
     try:
-        cast(
-            typed_dict,
-            pydantic.create_model_from_typeddict(typed_dict)(**instance).dict(),
-        )
+
+        TypeAdapter(typed_dict).validate_python(instance)
         return True
 
-    except pydantic.ValidationError as exc:
-        logger.info(f"ERROR: Invalid schema error {exc} for {instance}")
+    except ValidationError as exc:
+        print(f"ERROR: Invalid schema: {exc}")
         return False
 
 
