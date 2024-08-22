@@ -1,7 +1,6 @@
 # PlasmaPDF Quick Start Guide
 
-PlasmaPDF is a Python library for working with PDF documents, particularly focused on handling annotations and data
-extraction. This guide will walk you through the basic usage of the library.
+PlasmaPDF is a Python library for converting from txt spans to x-y positioned tokens in the PAWLs format. It is a utility library used in OpenContracts. 
 
 ## Installation
 
