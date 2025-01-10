@@ -1,17 +1,4 @@
 #  Copyright (C) 2022  John Scrudato / Gordium Knot Inc. d/b/a OpenSource.Legal
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU Affero General Public License as
-#  published by the Free Software Foundation, either version 3 of the
-#  License, or (at your option) any later version.
-
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU Affero General Public License for more details.
-
-#  You should have received a copy of the GNU Affero General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 import uuid
 
@@ -23,7 +10,7 @@ from plasmapdf.models.types import (
     PageAwareTextSpan,
     PawlsPagePythonType,
     SpanAnnotation,
-    TextSpan,
+    TextSpan, AnnotationType,
 )
 
 logger = logging.getLogger(__name__)
@@ -71,7 +58,7 @@ class PdfDataLayer:
         self.span_annotations: dict[str, any] = {}
 
     def get_raw_text_from_span(self, span: TextSpan) -> str:
-        return self.doc_text[span["start"] : span["end"]]
+        return self.doc_text[span["start"]: span["end"]]
 
     def convert_doc_span_to_opencontract_annotation_json(
         self,
@@ -237,11 +224,7 @@ class PdfDataLayer:
     def split_span_on_pages(self, span: TextSpan) -> list[PageAwareTextSpan]:
 
         span_start = span["start"]
-        print(f"Span start: {span_start}")
         span_end = span["end"]
-        print(f"Span end: {span_end}")
-
-        print(f"Split lines for char range {span_start} - {span_end}")
 
         pages = self.page_dataframe[
             (
@@ -265,10 +248,6 @@ class PdfDataLayer:
         page_split_spans: list[PageAwareTextSpan] = []
 
         for page in pages.iterrows():
-
-            print(f"Look at page # {page[0]} with start "
-                        f"{page[1]['Start']} and end "
-                        f"{page[1]['End']}")
 
             # Calculate the start of target span... if the span starts
             # before this page, use the page start index. Otherwise, use the
@@ -308,21 +287,24 @@ class PdfDataLayer:
         span = span_annotation["span"]
         annotation_label = span_annotation["annotation_label"]
 
-        id = uuid.uuid4().__str__()
+        annot_id = uuid.uuid4().__str__()
         annotation_json = self.convert_doc_span_to_opencontract_annotation_json(span)
         raw_text = self.get_raw_text_from_span(span)
         page = self.split_span_on_pages(span)[0]["page"]  # TODO - this is not working
 
         return {
-            "id": id,
+            "id": annot_id,
             "annotationLabel": annotation_label,
             "rawText": raw_text,
             "page": page,
             "annotation_json": annotation_json,
+            "annotation_type": AnnotationType.TOKEN_LABEL,
+            "parent_id": None,
+            "structural": False
         }
 
 
-def makePdfTranslationLayerFromPawlsTokens(
+def build_translation_layer(
     pawls_tokens: list[PawlsPagePythonType],
 ) -> PdfDataLayer:
 
@@ -341,7 +323,7 @@ def makePdfTranslationLayerFromPawlsTokens(
 
     for page_num, page in enumerate(pawls_tokens):
 
-        # logger.info(f"Looking at page_num {page_num}:\n\n{page}")
+        logger.info(f"Looking at page_num {page_num}:\n\n{page}")
 
         # We DO want to reset y pos on every page, which will be set to y of first token.
         last_y = -1

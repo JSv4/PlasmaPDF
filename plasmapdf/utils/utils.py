@@ -1,12 +1,14 @@
 import logging
-from typing import Union, cast
+from typing import Union
 from typing_extensions import TypedDict
 
 from pydantic import TypeAdapter, ValidationError
 
 from plasmapdf.models.types import (
-    OpenContractsDocAnalysisResult,
-    OpenContractsGeneratedCorpusPythonType, AnnotationLabelPythonType, OpenContractsLabelSetType,
+    OpenContractsDocAnnotations,
+    OpenContractsGeneratedCorpusPythonType,
+    AnnotationLabelPythonType,
+    OpenContractsLabelSetType,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,18 +27,18 @@ def is_dict_instance_of_typed_dict(instance: dict, typed_dict: type[TypedDict]):
 
 
 def package_job_results_to_oc_generated_corpus_type(
-    job_results: dict[Union[int, str], OpenContractsDocAnalysisResult],
+    job_results: dict[Union[int, str], OpenContractsDocAnnotations],
     possible_span_labels: list[AnnotationLabelPythonType],
     possible_doc_labels: list[AnnotationLabelPythonType],
     possible_relationship_labels: list[AnnotationLabelPythonType],
     suggested_label_set: OpenContractsLabelSetType
 ) -> OpenContractsGeneratedCorpusPythonType:
 
+    print(f"job_results: {job_results}")
+    print(f"Suggest label set: {suggested_label_set}")
+
     oc_corpus_type_dict: OpenContractsGeneratedCorpusPythonType = {
-        "annotated_docs": {
-            result["doc_id"]: result["annotations"]
-            for result in list(job_results.values())
-        },
+        "annotated_docs": job_results,
         "doc_labels": {
             label["id"]: label for label in possible_doc_labels
         },

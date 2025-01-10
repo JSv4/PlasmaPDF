@@ -25,7 +25,6 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "OpenContractTypes@git+https://github.com/JSv4/OpenContractTypes.git",
   "pandas",
   "numpy",
   "pydantic"

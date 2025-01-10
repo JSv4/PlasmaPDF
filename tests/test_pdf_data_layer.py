@@ -1,7 +1,8 @@
 import unittest
-from plasmapdf.models.PdfDataLayer import makePdfTranslationLayerFromPawlsTokens
+from plasmapdf.models.PdfDataLayer import build_translation_layer
 from plasmapdf.models.types import TextSpan, SpanAnnotation, PawlsPagePythonType
 import pandas as pd
+
 
 class TestPdfDataLayer(unittest.TestCase):
 
@@ -21,7 +22,7 @@ class TestPdfDataLayer(unittest.TestCase):
                 ]
             }
         ]
-        cls.pdf_data_layer = makePdfTranslationLayerFromPawlsTokens(cls.pawls_tokens)
+        cls.pdf_data_layer = build_translation_layer(cls.pawls_tokens)
 
     def test_get_raw_text_from_span(self):
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
@@ -71,6 +72,7 @@ class TestPdfDataLayer(unittest.TestCase):
     def test_page_tokens(self):
         self.assertIn(0, self.pdf_data_layer.page_tokens)
         self.assertEqual(len(self.pdf_data_layer.page_tokens[0]), 6)  # 6 tokens on page 0
+
 
 if __name__ == '__main__':
     unittest.main()

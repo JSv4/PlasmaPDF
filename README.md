@@ -18,7 +18,7 @@ pip install plasmapdf
 Start by importing the necessary components:
 
 ```python
-from plasmapdf.models.PdfDataLayer import makePdfTranslationLayerFromPawlsTokens
+from plasmapdf.models.PdfDataLayer import build_translation_layer
 from plasmapdf.models.types import TextSpan, SpanAnnotation, PawlsPagePythonType
 ```
 

@@ -1,8 +1,11 @@
 import unittest
-from plasmapdf.utils.utils import package_job_results_to_oc_generated_corpus_type, is_dict_instance_of_typed_dict
+from plasmapdf.utils.utils import (
+    package_job_results_to_oc_generated_corpus_type,
+    is_dict_instance_of_typed_dict
+)
 from plasmapdf.models.types import (
     OpenContractsGeneratedCorpusPythonType,
-    LabelType
+    LabelType, AnnotationType
 )
 
 
@@ -11,10 +14,6 @@ class TestPackageJobResults(unittest.TestCase):
     def setUp(self):
         self.job_results = {
             1: {
-                "doc_id": 1,
-                "task_status": "SUCCESS",
-                "task_message": "Document processed successfully",
-                "annotations": {
                     "doc_labels": ["CONTRACT"],
                     "labelled_text": [
                         {
@@ -28,12 +27,14 @@ class TestPackageJobResults(unittest.TestCase):
                                     "rawText": "Company A",
                                     "tokensJsons": [{"pageIndex": 1, "tokenIndex": 1}]
                                 }
-                            }
+                            },
+                            "parent_id": None,
+                            "annotation_type": AnnotationType.TOKEN_LABEL,
+                            "structural": False
                         }
                     ]
                 }
             }
-        }
 
         self.possible_span_labels = [
             {
@@ -106,12 +107,7 @@ class TestPackageJobResults(unittest.TestCase):
 
     def test_package_job_results_invalid_input(self):
         invalid_job_results = {
-            1: {
-                "doc_id": 1,
-                "task_status": "SUCCESS",
-                "task_message": "Document processed successfully",
-                "annotations": "Invalid annotations"  # This should be a dict, not a string
-            }
+            1: "Invalid annotations"  # This should be a dict, not a string
         }
 
         with self.assertRaises(ValueError):
@@ -127,13 +123,8 @@ class TestPackageJobResults(unittest.TestCase):
         multi_doc_job_results = {
             1: self.job_results[1],
             2: {
-                "doc_id": 2,
-                "task_status": "SUCCESS",
-                "task_message": "Document processed successfully",
-                "annotations": {
-                    "doc_labels": ["CONTRACT"],
-                    "labelled_text": []
-                }
+                "doc_labels": ["CONTRACT"],
+                "labelled_text": []
             }
         }
 

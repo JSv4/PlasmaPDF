@@ -1,59 +1,23 @@
-#  Copyright (C) 2022  John Scrudato / Gordium Knot Inc. d/b/a OpenSource.Legal
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU Affero General Public License as
-#  published by the Free Software Foundation, either version 3 of the
-#  License, or (at your option) any later version.
-from __future__ import annotations
-
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU Affero General Public License for more details.
-
-#  You should have received a copy of the GNU Affero General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import enum
 from typing import Optional, Union
-from typing_extensions import TypedDict
 
-from typing_extensions import NotRequired
-
-
-class JobStatus(str, enum.Enum):
-
-    CREATED = "CREATED"
-    QUEUED = "QUEUED"
-    RUNNING = "RUNNING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-
-    @classmethod
-    def choices(cls):
-        return [(key, key) for key in cls]
-
-
-class TaskStatus(str, enum.Enum):
-    SUCCESS = "SUCCESS"
-    FAILURE = "FAILURE"
+from typing_extensions import NotRequired, TypedDict
 
 
 class LabelType(str, enum.Enum):
     DOC_TYPE_LABEL = "DOC_TYPE_LABEL"
     TOKEN_LABEL = "TOKEN_LABEL"
     RELATIONSHIP_LABEL = "RELATIONSHIP_LABEL"
+    METADATA_LABEL = "METADATA_LABEL"
+    SPAN_LABEL = "SPAN_LABEL"
 
 
-class PermissionTypes(str, enum.Enum):
-    CREATE = "CREATE"
-    READ = "READ"
-    EDIT = "EDIT"
-    UPDATE = "UPDATE"
-    DELETE = "DELETE"
-    PERMISSION = "PERMISSION"
-    PUBLISH = "PUBLISH"
-    CRUD = "CRUD"
-    ALL = "ALL"
+class AnnotationType(str, enum.Enum):
+    RELATIONSHIP_LABEL = "RELATIONSHIP_LABEL"
+    DOC_TYPE_LABEL = "DOC_TYPE_LABEL"
+    TOKEN_LABEL = "TOKEN_LABEL"
+    METADATA_LABEL = "METADATA_LABEL"
+    SPAN_LABEL = "SPAN_LABEL"
 
 
 class AnnotationLabelPythonType(TypedDict):
@@ -74,8 +38,8 @@ class LabelLookupPythonType(TypedDict):
     once with only a very small memory cost.
     """
 
-    text_labels: dict[Union[str, int], AnnotationLabelPythonType]  # noqa  # fmt: off
-    doc_labels: dict[Union[str, int], AnnotationLabelPythonType]  # noqa  # fmt: off
+    text_labels: dict[str | int, AnnotationLabelPythonType]
+    doc_labels: dict[str | int, AnnotationLabelPythonType]
 
 
 class PawlsPageBoundaryPythonType(TypedDict):
@@ -86,6 +50,41 @@ class PawlsPageBoundaryPythonType(TypedDict):
     width: float
     height: float
     index: int
+
+
+class FunsdTokenType(TypedDict):
+    # From Funsd paper: box = [xlef t, ytop, xright, ybottom]
+    box: tuple[
+        float, float, float, float
+    ]  # This will be serialized to list when exported as JSON, but we want more
+    # control over length than list typing allows
+    text: str
+
+
+class FunsdAnnotationType(TypedDict):
+    box: tuple[float, float, float, float]
+    text: str
+    label: str
+    words: list[FunsdTokenType]
+    linking: list[int]
+    id: str | int
+    parent_id: Optional[str | int]
+
+
+class FunsdAnnotationLoaderOutputType(TypedDict):
+    id: str
+    tokens: list[str]
+    bboxes: list[tuple[float, float, float, float]]
+    ner_tags: list[str]
+    image: tuple[int, str, str]  # (doc_id, image_data, image_format)
+
+
+class FunsdAnnotationLoaderMapType(TypedDict):
+    page: list[FunsdAnnotationLoaderOutputType]
+
+
+class PageFundsAnnotationsExportType(TypedDict):
+    form: list[FunsdAnnotationType]
 
 
 class PawlsTokenPythonType(TypedDict):
@@ -116,10 +115,10 @@ class BoundingBoxPythonType(TypedDict):
     Bounding box for pdf box on a pdf page
     """
 
-    top: int
-    bottom: int
-    left: int
-    right: int
+    top: int | float
+    bottom: int | float
+    left: int | float
+    right: int | float
 
 
 class TokenIdPythonType(TypedDict):
@@ -146,6 +145,24 @@ class OpenContractsSinglePageAnnotationType(TypedDict):
     rawText: str
 
 
+class TextSpanData(TypedDict):
+    """
+    Stores start and end indices of a span
+    """
+
+    start: int
+    end: int
+    text: str
+
+
+class TextSpan(TextSpanData):
+    """
+    Stores start and end indices of a span
+    """
+
+    id: str
+
+
 class OpenContractsAnnotationPythonType(TypedDict):
     """
     Data type for individual Open Contract annotation data type converted
@@ -157,20 +174,12 @@ class OpenContractsAnnotationPythonType(TypedDict):
     annotationLabel: str
     rawText: str
     page: int
-    annotation_json: dict[
-        Union[int, str], OpenContractsSinglePageAnnotationType
-    ]  # noqa  # fmt: off
-
-
-class TextSpan(TypedDict):
-    """
-    Stores start and end indices of a span
-    """
-
-    id: str
-    start: int
-    end: int
-    text: str
+    annotation_json: Union[
+        dict[Union[int, str], OpenContractsSinglePageAnnotationType], TextSpanData
+    ]
+    parent_id: Optional[Union[str, int]]
+    annotation_type: AnnotationType
+    structural: bool
 
 
 class SpanAnnotation(TypedDict):
@@ -202,34 +211,6 @@ class PageAwareTextSpan(TypedDict):
     text: str
 
 
-class OpenContractsDocAnnotations(TypedDict):
-
-    # Can have multiple doc labels. Want array of doc label ids, which will be
-    # mapped to proper objects after import.
-    doc_labels: list[str]
-
-    # The annotations are stored in a list of JSONS matching OpenContractsAnnotationPythonType
-    labelled_text: list[OpenContractsAnnotationPythonType]
-
-
-class OpenContractDocAnnotationExport(OpenContractsDocAnnotations):
-
-    """
-    Eech individual documents annotations are exported and imported into
-    and out of jsons with this form. Inherits doc_labels and labelled_text
-    from OpenContractsDocAnnotations
-    """
-
-    # Document title
-    title: str
-
-    # Document text
-    content: str
-
-    # Documents PAWLS parse file contents (serialized)
-    pawls_file_content: list[PawlsPagePythonType]
-
-
 class OpenContractCorpusTemplateType(TypedDict):
     title: str
     description: str
@@ -244,12 +225,85 @@ class OpenContractCorpusType(OpenContractCorpusTemplateType):
 
 
 class OpenContractsLabelSetType(TypedDict):
-    id: Union[int, str]  # noqa  # fmt: off
+    id: int | str
     title: str
     description: str
     icon_data: Optional[str]
     icon_name: Optional[str]
     creator: str
+
+
+class AnalyzerMetaDataType(TypedDict):
+    id: str
+    description: str
+    title: str
+    dependencies: list[str]
+    author_name: str
+    author_email: str
+    more_details_url: str
+    icon_base_64_data: str
+    icon_name: str
+
+
+class AnalyzerManifest(TypedDict):
+    metadata: AnalyzerMetaDataType
+    doc_labels: list[AnnotationLabelPythonType]
+    text_labels: list[AnnotationLabelPythonType]
+    label_set: OpenContractsLabelSetType
+
+
+class OpenContractsRelationshipPythonType(TypedDict):
+    """
+    Data type for individual Open Contract relationship data type converted
+    into JSON for import/export.
+
+    Note that typically any 'old' ID is not the actual DB ID, so you'll need a map
+    from these old ids to the new database IDs for any related objects (i.e. Annotations).
+    """
+
+    id: Optional[Union[str, int]]
+    relationshipLabel: str
+    source_annotation_ids: list[Union[str, int]]
+    target_annotation_ids: list[Union[str, int]]
+    structural: bool
+
+
+class OpenContractsDocAnnotations(TypedDict):
+    # Can have multiple doc labels. Want array of doc label ids, which will be
+    # mapped to proper objects after import.
+    doc_labels: list[str]
+
+    # The annotations are stored in a list of JSONS matching OpenContractsAnnotationPythonType
+    labelled_text: list[OpenContractsAnnotationPythonType]
+
+    # Relationships are stored in a list of JSONS matching OpenContractsRelationshipPythonType.
+    # These in the OpenContractsDocAnnotations should only be for the annotations that are
+    # contained WITHIN document. Plan to add a separate attr at corpus level for cross-doc
+    # relationships.
+    relationships: NotRequired[list[OpenContractsRelationshipPythonType]]
+
+
+class OpenContractDocExport(OpenContractsDocAnnotations):
+    """
+    Eech individual documents annotations are exported and imported into
+    and out of jsons with this form. Inherits doc_labels and labelled_text
+    from OpenContractsDocAnnotations
+    """
+
+    # Document title
+    title: str
+
+    # Document text
+    content: str
+
+    # Document description
+    description: Optional[str]
+
+    # Documents PAWLS parse file contents (serialized)
+    pawls_file_content: list[PawlsPagePythonType]
+
+    # We need to have a page count for certain analyses
+    page_count: int
 
 
 class OpenContractsExportDataJsonPythonType(TypedDict):
@@ -259,7 +313,7 @@ class OpenContractsExportDataJsonPythonType(TypedDict):
     """
 
     # Lookup of pdf filename to the corresponding Annotation data
-    annotated_docs: dict[str, OpenContractDocAnnotationExport]
+    annotated_docs: dict[str, OpenContractDocExport]
 
     # Requisite labels, mapped from label name to label data
     doc_labels: dict[str, AnnotationLabelPythonType]
@@ -274,11 +328,34 @@ class OpenContractsExportDataJsonPythonType(TypedDict):
     label_set: OpenContractsLabelSetType
 
 
-class OpenContractsDocAnalysisResult(TypedDict):
-    doc_id: Union[int, str]  # noqa  # fmt: off
-    task_status: TaskStatus
-    task_message: str
-    annotations: Optional[OpenContractsDocAnnotations]
+class OpenContractsAnnotatedDocumentImportType(TypedDict):
+    """
+    This is the type of the data.json that goes into our import for a single
+    document with its annotations and labels.
+    """
+
+    # Document title
+    doc_data: OpenContractDocExport
+
+    # Document pdf as base64 string
+    pdf_base64: str
+
+    # Document name
+    pdf_name: str
+
+    # Lookup of pdf filename to the corresponding Annotation data
+    doc_labels: dict[str, AnnotationLabelPythonType]
+
+    # Requisite text labels, mapped from label name to label data
+    text_labels: dict[str, AnnotationLabelPythonType]
+
+    # Requisite metadata labels, mapped from label name to label data
+    metadata_labels: dict[str, AnnotationLabelPythonType]
+
+
+class OpenContractsAnalysisTaskResult(TypedDict):
+    doc_id: int
+    annotations: OpenContractsDocAnnotations
 
 
 class OpenContractsGeneratedCorpusPythonType(TypedDict):
@@ -299,21 +376,3 @@ class OpenContractsGeneratedCorpusPythonType(TypedDict):
 
     # Stores the label set (todo - make sure the icon gets stored as base64)
     label_set: OpenContractsLabelSetType
-
-
-class StoreJobResultsReturnType(TypedDict):
-    job_id: Union[int, str]
-    job_status: JobStatus
-    results: OpenContractsGeneratedCorpusPythonType  # noqa  # fmt: off
-
-
-class AnalyzerMetaDataType(TypedDict):
-    id: str
-    description: str
-    title: str
-    dependencies: list[str]
-    author_name: str
-    author_email: str
-    more_details_url: str
-    icon_base_64_data: str
-    icon_name: str
