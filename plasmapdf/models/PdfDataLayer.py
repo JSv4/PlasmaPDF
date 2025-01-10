@@ -254,11 +254,12 @@ class PdfDataLayer:
 
         return return_annotations
 
-    # TODO - This doesn't appear to work properly and is ONLY used to determine the
-    # TODO - first page of a given annotation? Get rid of this if possible.
-    # TODO - Just extra code to maintain. It's useless.
     def split_span_on_pages(self, span: TextSpan) -> list[PageAwareTextSpan]:
-
+        """
+        Splits the given character-based text span by page, returning a list of 
+        page-aware spans. These will each contain the slice of the doc_text that 
+        appears on that page only.
+        """
         span_start = span["start"]
         span_end = span["end"]
 
@@ -277,39 +278,30 @@ class PdfDataLayer:
             )
         ]
 
-        print(f"Pages: {pages}")
-
-        # logger.info(f"Resulting pages: {pages}")
-
         page_split_spans: list[PageAwareTextSpan] = []
 
         for page in pages.iterrows():
+            page_idx = page[0]
+            page_start = page[1]["Start"]
+            page_end = page[1]["End"]
 
-            # Calculate the start of target span... if the span starts
-            # before this page, use the page start index. Otherwise, use the
-            # page start index.
-            if span_start <= page[1]["Start"]:
-                span_page_start = page[1]["Start"]
+            if span_start <= page_start:
+                span_page_start = page_start
             else:
                 span_page_start = span_start
 
-            # Calculate the end of this page's span... if the span ends after this
-            # page, use the page end index. Otherwise, if span ends on this page,
-            # use the span's end index
-            if span_end > page[1]["End"]:
-                span_page_end = page[1]["End"]
+            if span_end > page_end:
+                span_page_end = page_end
             else:
                 span_page_end = span_end
 
             page_split_spans.append(
                 {
                     "original_span_id": span["id"],
-                    "page": page[0],
+                    "page": page_idx,
                     "start": span_page_start,
                     "end": span_page_end,
-                    "text": self.human_friendly_full_text[
-                        span_page_start:span_page_end
-                    ],
+                    "text": self.doc_text[span_page_start:span_page_end],
                 }
             )
 
