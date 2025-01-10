@@ -1,6 +1,6 @@
 # PlasmaPDF Quick Start Guide
 
-PlasmaPDF is a Python library for converting from txt spans to x-y positioned tokens in the PAWLs format. It is a utility library used in OpenContracts. 
+PlasmaPDF is a Python library for converting from txt spans to x-y positioned tokens in the PAWLs format. It is a utility library used in OpenContracts and PdfRedactor. 
 
 ## Installation
 
@@ -69,6 +69,83 @@ print(pdf_data_layer.human_friendly_full_text)  # Human-readable version of the 
 print(pdf_data_layer.page_dataframe)  # DataFrame with page information
 print(pdf_data_layer.tokens_dataframe)  # DataFrame with token information
 ```
+
+## Development Setup
+
+PlasmaPDF uses `hatch` for environment and development workflow management. Here's how to get started:
+
+### 1. Install Hatch
+
+First, install hatch globally:
+
+```bash
+pip install hatch
+```
+
+### 2. Development Environment
+
+Hatch automatically manages virtual environments for you. To activate the development environment:
+
+```bash
+hatch shell dev
+```
+
+### 3. Running Tests
+
+PlasmaPDF uses pytest for testing. To run tests:
+
+```bash
+hatch run dev:pytest
+```
+
+For tests with coverage:
+
+```bash
+hatch run dev:pytest --cov
+```
+
+### 4. Code Quality Tools
+
+PlasmaPDF comes with several code quality tools configured:
+
+#### Formatting
+To format your code using `black` and `isort`:
+
+```bash
+hatch run dev:format
+```
+
+#### Linting
+To run flake8 linting:
+
+```bash
+hatch run dev:lint
+```
+
+#### Type Checking
+To run mypy type checking:
+
+```bash
+hatch run types:check
+```
+
+### 5. Environment Details
+
+PlasmaPDF defines several hatch environments in `pyproject.toml`:
+
+- `dev`: Main development environment with testing and formatting tools
+- `types`: Environment for type checking with mypy
+
+Each environment has its own dependencies and scripts defined in `pyproject.toml`.
+
+### 6. Code Style
+
+The project follows these standards:
+- Line length: 88 characters (Black default)
+- Python version: 3.8+
+- Strict type checking with mypy
+- Black code style
+- Isort for import sorting (configured to be compatible with Black)
 
 ## Advanced Usage
 

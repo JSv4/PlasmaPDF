@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "plasmapdf"
 dynamic = ["version"]
-description = 'Annotation tools for PDF'
+description = "Annotation generator and search tools for PDF"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
 requires-python = ">=3.8"
@@ -25,9 +25,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "pandas",
-  "numpy",
-  "pydantic"
+  "pandas==2.2.3",
+  "numpy==2.2.1",
+  "pydantic==2.10.5"
 ]
 
 [project.urls]
@@ -66,12 +66,17 @@ exclude_lines = [
 
 [tool.hatch.envs.dev]
 dependencies = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "isort>=5.0.0",
-    "flake8>=6.0.0"
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "black>=23.0.0",
+  "isort>=5.0.0",
+  "flake8>=6.0.0"
 ]
+
+# Run code formatters and linters easily in the dev environment
+[tool.hatch.envs.dev.scripts]
+format = "isort plasmapdf tests && black plasmapdf tests"
+lint = "flake8 plasmapdf tests"
 
 [tool.black]
 line-length = 88
@@ -80,3 +85,28 @@ target-version = ["py38"]
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203,W503"
+select = "B,C,E,F,W,T4,B9"
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.hatch.build]
+include = [
+  "/plasmapdf",
+  "/*.md",
+  "/LICENSE.txt"
+]
+exclude = [
+  "*.tests.*",
+  "*.tests",
+  "tests",
+  "tests.*"
+]

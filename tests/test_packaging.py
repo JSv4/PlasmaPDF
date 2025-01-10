@@ -1,11 +1,13 @@
 import unittest
-from plasmapdf.utils.utils import (
-    package_job_results_to_oc_generated_corpus_type,
-    is_dict_instance_of_typed_dict
-)
+
 from plasmapdf.models.types import (
+    AnnotationType,
+    LabelType,
     OpenContractsGeneratedCorpusPythonType,
-    LabelType, AnnotationType
+)
+from plasmapdf.utils.utils import (
+    is_dict_instance_of_typed_dict,
+    package_job_results_to_oc_generated_corpus_type,
 )
 
 
@@ -14,27 +16,32 @@ class TestPackageJobResults(unittest.TestCase):
     def setUp(self):
         self.job_results = {
             1: {
-                    "doc_labels": ["CONTRACT"],
-                    "labelled_text": [
-                        {
-                            "id": "1",
-                            "annotationLabel": "PARTY",
-                            "rawText": "Company A",
-                            "page": 1,
-                            "annotation_json": {
-                                1: {
-                                    "bounds": {"top": 100, "bottom": 120, "left": 50, "right": 150},
-                                    "rawText": "Company A",
-                                    "tokensJsons": [{"pageIndex": 1, "tokenIndex": 1}]
-                                }
-                            },
-                            "parent_id": None,
-                            "annotation_type": AnnotationType.TOKEN_LABEL,
-                            "structural": False
-                        }
-                    ]
-                }
+                "doc_labels": ["CONTRACT"],
+                "labelled_text": [
+                    {
+                        "id": "1",
+                        "annotationLabel": "PARTY",
+                        "rawText": "Company A",
+                        "page": 1,
+                        "annotation_json": {
+                            1: {
+                                "bounds": {
+                                    "top": 100,
+                                    "bottom": 120,
+                                    "left": 50,
+                                    "right": 150,
+                                },
+                                "rawText": "Company A",
+                                "tokensJsons": [{"pageIndex": 1, "tokenIndex": 1}],
+                            }
+                        },
+                        "parent_id": None,
+                        "annotation_type": AnnotationType.TOKEN_LABEL,
+                        "structural": False,
+                    }
+                ],
             }
+        }
 
         self.possible_span_labels = [
             {
@@ -43,7 +50,7 @@ class TestPackageJobResults(unittest.TestCase):
                 "description": "A party in the contract",
                 "icon": "user",
                 "text": "Party",
-                "label_type": LabelType.TOKEN_LABEL
+                "label_type": LabelType.TOKEN_LABEL,
             }
         ]
 
@@ -54,7 +61,7 @@ class TestPackageJobResults(unittest.TestCase):
                 "description": "A contract document",
                 "icon": "file-text",
                 "text": "Contract",
-                "label_type": LabelType.DOC_TYPE_LABEL
+                "label_type": LabelType.DOC_TYPE_LABEL,
             }
         ]
 
@@ -66,7 +73,7 @@ class TestPackageJobResults(unittest.TestCase):
             "description": "A test label set",
             "icon_data": None,
             "icon_name": None,
-            "creator": "test@example.com"
+            "creator": "test@example.com",
         }
 
     def test_package_job_results_successful(self):
@@ -75,11 +82,15 @@ class TestPackageJobResults(unittest.TestCase):
             self.possible_span_labels,
             self.possible_doc_labels,
             self.possible_relationship_labels,
-            self.suggested_label_set
+            self.suggested_label_set,
         )
 
         self.assertIsInstance(result, dict)
-        self.assertTrue(is_dict_instance_of_typed_dict(result, OpenContractsGeneratedCorpusPythonType))
+        self.assertTrue(
+            is_dict_instance_of_typed_dict(
+                result, OpenContractsGeneratedCorpusPythonType
+            )
+        )
 
         self.assertIn("annotated_docs", result)
         self.assertIn("doc_labels", result)
@@ -98,11 +109,15 @@ class TestPackageJobResults(unittest.TestCase):
             self.possible_span_labels,
             self.possible_doc_labels,
             self.possible_relationship_labels,
-            self.suggested_label_set
+            self.suggested_label_set,
         )
 
         self.assertIsInstance(result, dict)
-        self.assertTrue(is_dict_instance_of_typed_dict(result, OpenContractsGeneratedCorpusPythonType))
+        self.assertTrue(
+            is_dict_instance_of_typed_dict(
+                result, OpenContractsGeneratedCorpusPythonType
+            )
+        )
         self.assertEqual(len(result["annotated_docs"]), 0)
 
     def test_package_job_results_invalid_input(self):
@@ -116,16 +131,13 @@ class TestPackageJobResults(unittest.TestCase):
                 self.possible_span_labels,
                 self.possible_doc_labels,
                 self.possible_relationship_labels,
-                self.suggested_label_set
+                self.suggested_label_set,
             )
 
     def test_package_job_results_multiple_docs(self):
         multi_doc_job_results = {
             1: self.job_results[1],
-            2: {
-                "doc_labels": ["CONTRACT"],
-                "labelled_text": []
-            }
+            2: {"doc_labels": ["CONTRACT"], "labelled_text": []},
         }
 
         result = package_job_results_to_oc_generated_corpus_type(
@@ -133,11 +145,11 @@ class TestPackageJobResults(unittest.TestCase):
             self.possible_span_labels,
             self.possible_doc_labels,
             self.possible_relationship_labels,
-            self.suggested_label_set
+            self.suggested_label_set,
         )
 
         self.assertEqual(len(result["annotated_docs"]), 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

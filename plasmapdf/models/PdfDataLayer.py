@@ -5,12 +5,13 @@ import uuid
 import pandas as pd
 
 from plasmapdf.models.types import (
+    AnnotationType,
     OpenContractsAnnotationPythonType,
     OpenContractsSinglePageAnnotationType,
     PageAwareTextSpan,
     PawlsPagePythonType,
     SpanAnnotation,
-    TextSpan, AnnotationType,
+    TextSpan,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ class PdfDataLayer:
         self.span_annotations: dict[str, any] = {}
 
     def get_raw_text_from_span(self, span: TextSpan) -> str:
-        return self.doc_text[span["start"]: span["end"]]
+        return self.doc_text[span["start"] : span["end"]]
 
     def convert_doc_span_to_opencontract_annotation_json(
         self,
@@ -67,7 +68,6 @@ class PdfDataLayer:
         max_bbox_vertical_margin: float = 1,
         max_bbox_horizontal_margin: float = 5,
     ) -> dict[int, OpenContractsSinglePageAnnotationType]:
-
         """
         Given the start and end index of a string in the document, return the PAWLS tokens for the annotation, split
         across pages. For a given page, the annotation will look like:
@@ -90,8 +90,8 @@ class PdfDataLayer:
 
         # logger.info(f"Get tokens in char range {span_start} - {span_end}")
         tokens = self.tokens_dataframe[
-            (self.tokens_dataframe["Char_Start"] < span_end) &
-            (self.tokens_dataframe["Char_End"] > span_start)
+            (self.tokens_dataframe["Char_Start"] < span_end)
+            & (self.tokens_dataframe["Char_End"] > span_start)
         ]
 
         print(f"Found {len(tokens)} tokens to process")
@@ -155,7 +155,9 @@ class PdfDataLayer:
             if bbox_left == -1:
                 bbox_left = token_left
             elif token_left < bbox_left:
-                logger.debug(f"    New left bound: {token_left:.2f} (was {bbox_left:.2f})")
+                logger.debug(
+                    f"    New left bound: {token_left:.2f} (was {bbox_left:.2f})"
+                )
                 bbox_left = token_left
 
             # Update bounding box right
@@ -212,7 +214,9 @@ class PdfDataLayer:
                     page_text = token_obj["text"]
                 else:
                     page_text += " " + token_obj["text"]
-                page_tokens.append({"pageIndex": token_page, "tokenIndex": token_page_id})
+                page_tokens.append(
+                    {"pageIndex": token_page, "tokenIndex": token_page_id}
+                )
 
         # After the loop, finalize the page bounding box for the last page:
         if last_page != -1:  # If we had any tokens at all
@@ -250,8 +254,8 @@ class PdfDataLayer:
 
     def split_span_on_pages(self, span: TextSpan) -> list[PageAwareTextSpan]:
         """
-        Splits the given character-based text span by page, returning a list of 
-        page-aware spans. These will each contain the slice of the doc_text that 
+        Splits the given character-based text span by page, returning a list of
+        page-aware spans. These will each contain the slice of the doc_text that
         appears on that page only.
         """
         span_start = span["start"]
@@ -322,14 +326,18 @@ class PdfDataLayer:
             "annotation_json": annotation_json,
             "annotation_type": AnnotationType.TOKEN_LABEL,
             "parent_id": None,
-            "structural": False
+            "structural": False,
         }
 
 
 def build_translation_layer(
     pawls_tokens: list[PawlsPagePythonType],
 ) -> PdfDataLayer:
-
+    """
+    Builds a PdfDataLayer from PAWLS tokens. Consolidates common equivalent chars so that
+    both doc_text and page_tokens match in text transformations (e.g., curly quotes replaced
+    with straight quotes).
+    """
     page_tokens = {}
     doc_tokens = []
     tokens = []
@@ -339,23 +347,22 @@ def build_translation_layer(
     human_friendly_text = ""
     line_start_char = 0
 
-    # We want the last token height to carry over from previous pages, so we have a token
-    # height that is useful to compare to if the page starts with whitespace (token height of 0)
     last_token_height = -1
 
     for page_num, page in enumerate(pawls_tokens):
 
         logger.info(f"Looking at page_num {page_num}:\n\n{page}")
 
-        # We DO want to reset y pos on every page, which will be set to y of first token.
         last_y = -1
-
         line_text = ""
         page_tokens[page_num] = []
 
         for page_token_index, token in enumerate(page["tokens"]):
-
+            # Consolidate text so this token matches the doc_text
             token_text = __consolidate_common_equivalent_chars(token["text"])
+            # Ensure both doc_text and stored page_tokens see this consolidated text
+            token["text"] = token_text
+
             page_tokens[page_num].append(token)
             doc_tokens.append(token)
 
@@ -363,32 +370,16 @@ def build_translation_layer(
             new_token_height = round(token["height"], 0)
 
             if last_y == -1:
-                last_y = round(token["y"], 0)
+                last_y = new_y
 
             if last_token_height == -1:
-
-                # Not really sure how to handle situations where the token height is 0 at the beginning... just
-                # try 1 pixel, I guess?
                 last_token_height = new_token_height if new_token_height > 0 else 1
 
-            # Tesseract line positions seem a bit erratic, honestly. Figuring out when a token is on the same line is
-            # not as easy as checking if y positions are the same as they are often off by a couple pixels. This is
-            # dependent on document, font size, OCR quality, and more... Decent heuristic I came up with was to look
-            # at two consecutive tokens, take the max token height and then see if the y difference was more than some
-            # percentage of the larger of the two token heights (to account for things like periods or dashes or
-            # whatever next to a word). Seems to work pretty well, though I am *SURE* it will fail in some cases. Easy
-            # enough fix there... just don't give a cr@p about line height and newlines and always use a space. That's
-            # actually probably fine for ML purposes.
-            # logger.info(f"Token: {token['text']} (len {len(token['text'])})")
-            # logger.info(f"Line y difference: {abs(new_y - last_y)}")
-            # logger.info(f"Compared to averaged token height: {0.5 * max(new_token_height, last_token_height)}")
-
+            # Heuristic to detect line breaks
             if abs(new_y - last_y) > (0.5 * max(new_token_height, last_token_height)):
-
                 human_friendly_text += (
                     ("\n" + token_text) if len(human_friendly_text) > 0 else token_text
                 )
-
                 lines.append(
                     (
                         page_num,
@@ -397,20 +388,17 @@ def build_translation_layer(
                         len(line_text) + line_start_char,
                     )
                 )
-
-                line_start_char = len(doc_text) + 1  # Accounting for newline
+                line_start_char = len(doc_text) + 1
                 line_text = token_text
-
             else:
                 line_text += " " if len(line_text) > 0 else ""
                 line_text += token_text
-
                 human_friendly_text += (
                     (" " + token_text) if len(human_friendly_text) > 0 else token_text
                 )
 
             start_length = len(doc_text)
-            doc_text += " " if len(doc_text) > 0 else ""
+            doc_text += " " if len(doc_text) else ""
             doc_text += token_text
             end_length = len(doc_text)
 
@@ -419,9 +407,6 @@ def build_translation_layer(
             )
 
             last_y = new_y
-
-            # We want to compare line heights of non-whitespace chars. If the current token
-            # is a whitespace char, its height will be 0, so just leave the last_token_height in place.
             if new_token_height > 0:
                 last_token_height = new_token_height
 
@@ -433,8 +418,6 @@ def build_translation_layer(
             ]
         )
 
-        # logger.info(f"Pages: {pages}")
-
     page_dim_df = pd.DataFrame(pages, columns=["Page", "Start", "End"], dtype=object)
     line_dim_df = pd.DataFrame(
         lines, columns=["Page", "Line", "Char_Start", "Char_End"], dtype=object
@@ -442,8 +425,6 @@ def build_translation_layer(
     token_dim_df = pd.DataFrame(
         tokens, columns=["Page", "Token_Id", "Char_Start", "Char_End"], dtype=object
     )
-
-    # logger.info(f"page_text: {doc_text}")
 
     return PdfDataLayer(
         pawls_tokens=pawls_tokens,
