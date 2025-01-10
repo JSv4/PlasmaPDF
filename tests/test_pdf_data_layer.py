@@ -93,6 +93,8 @@ class TestPdfDataLayer(unittest.TestCase):
         oc_annotation = self.pdf_data_layer_2.create_opencontract_annotation_from_span(span_annotation)
         print(f"oc_annotation: {oc_annotation}")
 
+        oc_annotation_idx = oc_annotation['annotation_json'][0]['tokensJsons'][0]['tokenIndex']
+
         # Verify the tokens exist in the underlying data layer
         tokens_df = self.pdf_data_layer_2.tokens_dataframe
         print(f"~~~ tokens_df: {tokens_df}")
@@ -100,8 +102,10 @@ class TestPdfDataLayer(unittest.TestCase):
             (tokens_df['Char_Start'] <= 537) &
             (tokens_df['Char_End'] >= 533)
         ]
-        print(f"matching_tokens: {matching_tokens}")
         self.assertFalse(matching_tokens.empty, "Should find tokens for 'Eton'")
+
+        match_idx = matching_tokens.iloc[0]['Token_Id']
+        self.assertEqual(match_idx, oc_annotation_idx)
 
 
 if __name__ == '__main__':

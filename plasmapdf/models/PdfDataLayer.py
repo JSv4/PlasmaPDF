@@ -83,24 +83,18 @@ class PdfDataLayer:
             }
         """
 
-        logger.info(f"Processing span {span['id']} from {span['start']} to {span['end']}")
+        print(f"Processing span {span['id']} from {span['start']} to {span['end']}")
 
         span_start = span["start"]
         span_end = span["end"]
 
         # logger.info(f"Get tokens in char range {span_start} - {span_end}")
         tokens = self.tokens_dataframe[
-            (
-                (self.tokens_dataframe["Char_Start"] >= span_start)
-                & (self.tokens_dataframe["Char_Start"] <= span_end)
-            )
-            | (
-                (self.tokens_dataframe["Char_End"] >= span_start)
-                & (self.tokens_dataframe["Char_End"] <= span_end)
-            )
+            (self.tokens_dataframe["Char_Start"] < span_end) &
+            (self.tokens_dataframe["Char_End"] > span_start)
         ]
 
-        logger.info(f"Found {len(tokens)} tokens to process")
+        print(f"Found {len(tokens)} tokens to process")
 
         return_annotations: dict[int, OpenContractsSinglePageAnnotationType] = {}
         page_tokens = []
