@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "plasmapdf"
 dynamic = ["version"]
-description = ''
+description = 'Annotation tools for PDF'
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = []
@@ -37,10 +37,6 @@ Source = "https://github.com/JSv4/plasmapdf"
 [tool.hatch.version]
 path = "plasmapdf/__about__.py"
 
-[tool.hatch.metadata]
-allow-direct-references=true
-Metadata-Version=2.4
-
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
@@ -66,3 +62,20 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.hatch.envs.dev]
+dependencies = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "flake8>=6.0.0"
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
