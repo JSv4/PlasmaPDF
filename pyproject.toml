@@ -39,6 +39,7 @@ path = "plasmapdf/__about__.py"
 
 [tool.hatch.metadata]
 allow-direct-references=true
+Metadata-Version=2.4
 
 [tool.hatch.envs.types]
 extra-dependencies = [
