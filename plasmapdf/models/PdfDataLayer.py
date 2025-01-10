@@ -83,6 +83,8 @@ class PdfDataLayer:
             }
         """
 
+        logger.info(f"Processing span {span['id']} from {span['start']} to {span['end']}")
+
         span_start = span["start"]
         span_end = span["end"]
 
@@ -98,7 +100,9 @@ class PdfDataLayer:
             )
         ]
 
-        return_annotations = {}
+        logger.info(f"Found {len(tokens)} tokens to process")
+
+        return_annotations: dict[int, OpenContractsSinglePageAnnotationType] = {}
         page_tokens = []
         page_text = ""
 
@@ -109,112 +113,144 @@ class PdfDataLayer:
         bbox_left = -1
         bbox_right = -1
 
-        for token in tokens.iterrows():
+        for _, row in tokens.iterrows():
+            token_page = row["Page"]
+            token_page_id = row["Token_Id"]
 
-            token_page = token[1]["Page"]
-
-            # logger.info(f"Handle token page: {token_page}")
-
-            if last_page == -1:
-                last_page = token_page
-
-            token_page_id = token[1]["Token_Id"]
+            logger.debug(f"  Processing token {token_page_id} on page {token_page}")
             token_obj = self.page_tokens[token_page][token_page_id]
             token_height = token_obj["height"]
             token_width = token_obj["width"]
 
-            ###########################################################################
-            #                                                                         #
-            # Check / Update Bounding Box                                             #
-            #                                                                         #
-            # Top Left Corner is 0,0. Y increases as you move down page.              #
-            # Update bounding box to include token in it                              #
-            ###########################################################################
+            # First, define token_bottom/left/right so they exist before any logging/comparisons.
             token_top = token_obj["y"]
+            token_bottom = token_top + token_height
+            token_left = token_obj["x"]
+            token_right = token_left + token_width
+
+            logger.debug(
+                f"    Token dims: {token_width:.2f}w x {token_height:.2f}h "
+                f"at ({token_obj['x']:.2f}, {token_obj['y']:.2f})"
+            )
+
+            # Only log the "current bbox" if it has been initialized
+            if bbox_top != -1:
+                logger.debug(
+                    f"    Current bbox: t:{bbox_top:.2f} b:{bbox_bottom:.2f} "
+                    f"l:{bbox_left:.2f} r:{bbox_right:.2f}"
+                )
+
+            # Update bounding box top
             if bbox_top == -1:
+                logger.debug("    Initializing bbox with first token")
                 bbox_top = token_top
             elif token_top < bbox_top:
+                logger.debug(f"    New top bound: {token_top:.2f} (was {bbox_top:.2f})")
                 bbox_top = token_top
 
-            token_bottom = token_top + token_height
+            # Update bounding box bottom
             if bbox_bottom == -1:
                 bbox_bottom = token_bottom
             elif token_bottom > bbox_bottom:
+                logger.debug(
+                    f"    New bottom bound: {token_bottom:.2f} (was {bbox_bottom:.2f})"
+                )
                 bbox_bottom = token_bottom
 
-            token_left = token_obj["x"]
+            # Update bounding box left
             if bbox_left == -1:
                 bbox_left = token_left
             elif token_left < bbox_left:
+                logger.debug(f"    New left bound: {token_left:.2f} (was {bbox_left:.2f})")
                 bbox_left = token_left
 
-            token_right = token_left + token_width
+            # Update bounding box right
             if bbox_right == -1:
                 bbox_right = token_right
             elif token_right > bbox_right:
+                logger.debug(
+                    f"    New right bound: {token_right:.2f} (was {bbox_right:.2f})"
+                )
                 bbox_right = token_right
 
-            # If we changed pages... reset bounds and add bounding box to tracker
+            # If we've switched to a new page, finalize the old page's bbox, write it out,
+            # then reset for the new page:
             if token_page != last_page:
+                # Only finalize if last_page was valid
+                if last_page != -1:
+                    # Calculate final bounding box area for last_page
+                    bbox_height = bbox_bottom - bbox_top
+                    bbox_width = bbox_right - bbox_left
+                    logger.info(
+                        f"    Final bbox for page {last_page}: "
+                        f"{bbox_height:.2f}h x {bbox_width:.2f}w"
+                    )
+                    logger.info(
+                        f"    Padding applied: {padding * bbox_height:.2f}v, "
+                        f"{padding * bbox_width:.2f}h"
+                    )
 
-                bbox_height = bbox_bottom - bbox_top
-                logger.info(f"Height: {bbox_height}")
-                bbox_width = bbox_right - bbox_left
-                logger.info(f"Width: {bbox_width}")
+                    return_annotations[last_page] = {
+                        "bounds": {
+                            "top": bbox_top - (padding * bbox_height),
+                            "bottom": bbox_bottom + (padding * bbox_height),
+                            "left": bbox_left - (padding * bbox_width),
+                            "right": bbox_right + (padding * bbox_width),
+                        },
+                        "rawText": page_text,
+                        "tokensJsons": page_tokens,
+                    }
 
-                return_annotations[last_page] = {
-                    "bounds": {
-                        "top": bbox_top - (padding * bbox_height),
-                        "bottom": bbox_bottom + (padding * bbox_height),
-                        "left": bbox_left - (padding * bbox_width),
-                        "right": bbox_right + (padding * bbox_width),
-                    },
-                    "rawText": page_text,
-                    "tokensJsons": page_tokens,
-                }
-
-                # Reset tracking vars
+                # Reset for the new page
                 last_page = token_page
                 page_text = token_obj["text"]
                 page_tokens = [{"pageIndex": token_page, "tokenIndex": token_page_id}]
 
-                bbox_top = -1
-                bbox_bottom = -1
-                bbox_left = -1
-                bbox_right = -1
+                # Reset bounding box to current token's coordinates
+                bbox_top = token_top
+                bbox_bottom = token_bottom
+                bbox_left = token_left
+                bbox_right = token_right
 
             else:
+                # Same page => accumulate text & tokens
+                if page_text == "":
+                    page_text = token_obj["text"]
+                else:
+                    page_text += " " + token_obj["text"]
+                page_tokens.append({"pageIndex": token_page, "tokenIndex": token_page_id})
 
-                page_text += (
-                    token_obj["text"] if page_text == "" else (" " + token_obj["text"])
-                )
-                page_tokens.append(
-                    {"pageIndex": token_page, "tokenIndex": token_page_id}
-                )
+        # After the loop, finalize the page bounding box for the last page:
+        if last_page != -1:  # If we had any tokens at all
+            bbox_height = bbox_bottom - bbox_top
+            bbox_width = bbox_right - bbox_left
+            logger.info(f"Height: {bbox_height}")
+            logger.info(f"Width: {bbox_width}")
 
-        bbox_height = bbox_bottom - bbox_top
-        logger.info(f"Height: {bbox_height}")
-        bbox_width = bbox_right - bbox_left
-        logger.info(f"Width: {bbox_width}")
+            # Constrain the margins
+            bbox_vertical_margin = padding * bbox_height / 2
+            if bbox_vertical_margin > max_bbox_vertical_margin:
+                bbox_vertical_margin = max_bbox_vertical_margin
 
-        bbox_vertical_margin = padding * bbox_height / 2
-        if bbox_vertical_margin > max_bbox_vertical_margin:
-            bbox_vertical_margin = max_bbox_vertical_margin
+            bbox_horizontal_margin = padding * bbox_width / 2
+            if bbox_horizontal_margin > max_bbox_horizontal_margin:
+                bbox_horizontal_margin = max_bbox_horizontal_margin
 
-        bbox_horizontal_margin = padding * bbox_width / 2
-        if bbox_horizontal_margin > max_bbox_horizontal_margin:
-            bbox_horizontal_margin = max_bbox_horizontal_margin
-
-        return_annotations[last_page] = {
-            "bounds": {
-                "top": bbox_top - bbox_vertical_margin,
-                "bottom": bbox_bottom + bbox_vertical_margin,
-                "left": bbox_left - bbox_horizontal_margin,
-                "right": bbox_right + bbox_horizontal_margin,
-            },
-            "rawText": page_text,
-            "tokensJsons": page_tokens,
-        }
+            return_annotations[last_page] = {
+                "bounds": {
+                    "top": bbox_top - bbox_vertical_margin,
+                    "bottom": bbox_bottom + bbox_vertical_margin,
+                    "left": bbox_left - bbox_horizontal_margin,
+                    "right": bbox_right + bbox_horizontal_margin,
+                },
+                "rawText": page_text,
+                "tokensJsons": page_tokens,
+            }
+            logger.info(
+                f"Final bbox dimensions for page {last_page}: "
+                f"{bbox_height:.2f}h x {bbox_width:.2f}w (margins: "
+                f"{bbox_vertical_margin:.2f}v, {bbox_horizontal_margin:.2f}h)"
+            )
 
         return return_annotations
 

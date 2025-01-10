@@ -1,4 +1,6 @@
 import unittest
+import json
+import os
 from plasmapdf.models.PdfDataLayer import build_translation_layer
 from plasmapdf.models.types import TextSpan, SpanAnnotation, PawlsPagePythonType
 import pandas as pd
@@ -8,7 +10,12 @@ class TestPdfDataLayer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Sample PAWLS tokens for testing
+        # Load test fixtures
+        fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'corner_case_pawls.json')
+        with open(fixture_path, 'r') as f:
+            cls.pawls_tokens_2 = json.load(f)
+            
+        # Original test data
         cls.pawls_tokens: list[PawlsPagePythonType] = [
             {
                 "page": {"width": 612, "height": 792, "index": 0},
@@ -22,7 +29,10 @@ class TestPdfDataLayer(unittest.TestCase):
                 ]
             }
         ]
+        
+        # Create both data layers
         cls.pdf_data_layer = build_translation_layer(cls.pawls_tokens)
+        cls.pdf_data_layer_2 = build_translation_layer(cls.pawls_tokens_2)
 
     def test_get_raw_text_from_span(self):
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
@@ -72,6 +82,26 @@ class TestPdfDataLayer(unittest.TestCase):
     def test_page_tokens(self):
         self.assertIn(0, self.pdf_data_layer.page_tokens)
         self.assertEqual(len(self.pdf_data_layer.page_tokens[0]), 6)  # 6 tokens on page 0
+
+    def test_get_raw_text_from_span_eton(self):
+        """Test that a span containing 'Eton' at position 533-537 is correctly retrieved"""
+        span = TextSpan(id="2", start=533, end=537, text="ETON")
+        raw_text = self.pdf_data_layer_2.get_raw_text_from_span(span)
+        self.assertEqual(raw_text, "ETON")
+
+        span_annotation = SpanAnnotation(span=span, annotation_label="REDACT")
+        oc_annotation = self.pdf_data_layer_2.create_opencontract_annotation_from_span(span_annotation)
+        print(f"oc_annotation: {oc_annotation}")
+
+        # Verify the tokens exist in the underlying data layer
+        tokens_df = self.pdf_data_layer_2.tokens_dataframe
+        print(f"~~~ tokens_df: {tokens_df}")
+        matching_tokens = tokens_df[
+            (tokens_df['Char_Start'] <= 537) &
+            (tokens_df['Char_End'] >= 533)
+        ]
+        print(f"matching_tokens: {matching_tokens}")
+        self.assertFalse(matching_tokens.empty, "Should find tokens for 'Eton'")
 
 
 if __name__ == '__main__':
