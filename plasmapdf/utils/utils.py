@@ -1,8 +1,7 @@
 import logging
-from typing import Union
+from typing import Any, Dict, List, Union
 
 from pydantic import TypeAdapter, ValidationError
-from typing_extensions import TypedDict
 
 from plasmapdf.models.types import (
     AnnotationLabelPythonType,
@@ -14,11 +13,14 @@ from plasmapdf.models.types import (
 logger = logging.getLogger(__name__)
 
 
-def is_dict_instance_of_typed_dict(instance: dict, typed_dict: type[TypedDict]):
+def is_dict_instance_of_typed_dict(obj: Any, typed_dict_class: Any) -> bool:
+    """
+    Check if a dictionary matches the structure of a TypedDict class
+    """
     # validate with pydantic
     try:
 
-        TypeAdapter(typed_dict).validate_python(instance)
+        TypeAdapter(typed_dict_class).validate_python(obj)
         return True
 
     except ValidationError as exc:
@@ -27,10 +29,9 @@ def is_dict_instance_of_typed_dict(instance: dict, typed_dict: type[TypedDict]):
 
 
 def package_job_results_to_oc_generated_corpus_type(
-    job_results: dict[Union[int, str], OpenContractsDocAnnotations],
-    possible_span_labels: list[AnnotationLabelPythonType],
-    possible_doc_labels: list[AnnotationLabelPythonType],
-    possible_relationship_labels: list[AnnotationLabelPythonType],
+    job_results: Dict[Union[int, str], OpenContractsDocAnnotations],
+    text_labels: List[AnnotationLabelPythonType],
+    doc_labels: List[AnnotationLabelPythonType],
     suggested_label_set: OpenContractsLabelSetType,
 ) -> OpenContractsGeneratedCorpusPythonType:
 
@@ -39,8 +40,8 @@ def package_job_results_to_oc_generated_corpus_type(
 
     oc_corpus_type_dict: OpenContractsGeneratedCorpusPythonType = {
         "annotated_docs": job_results,
-        "doc_labels": {label["id"]: label for label in possible_doc_labels},
-        "text_labels": {label["id"]: label for label in possible_span_labels},
+        "doc_labels": {label["id"]: label for label in doc_labels},
+        "text_labels": {label["id"]: label for label in text_labels},
         "label_set": suggested_label_set,
     }
 

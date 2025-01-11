@@ -1,6 +1,7 @@
-#  Copyright (C) 2022  John Scrudato / Gordium Knot Inc. d/b/a OpenSource.Legal
+#  Copyright (C) 2025  John Scrudato
 import logging
 import uuid
+from typing import Any, Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -10,21 +11,23 @@ from plasmapdf.models.types import (
     OpenContractsSinglePageAnnotationType,
     PageAwareTextSpan,
     PawlsPagePythonType,
+    PawlsTokenPythonType,
     SpanAnnotation,
     TextSpan,
+    TokenIdPythonType,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def __consolidate_common_equivalent_chars(string):
+def __consolidate_common_equivalent_chars(string: str) -> str:
 
     # OCR sometimes uses characters similar to what we're looking for in place of actual char.
     # Here we do some quick, naive cleanup of this by replacing some more exotic chars that look
     # like common chars with their common equivalents.
 
     # Things that commonly look like apostrophes
-    for i in "’'´":
+    for i in "''´":
         string = string.replace(i, "'")
 
     # Things that commonly look like periods
@@ -37,15 +40,15 @@ def __consolidate_common_equivalent_chars(string):
 class PdfDataLayer:
     def __init__(
         self,
-        pawls_tokens,
-        page_dataframe,
-        lines_dataframe,
-        tokens_dataframe,
-        doc_text,
-        doc_tokens,
-        page_tokens,
-        human_friendly_full_text,
-    ):
+        pawls_tokens: List[PawlsPagePythonType],
+        page_dataframe: pd.DataFrame,
+        lines_dataframe: pd.DataFrame,
+        tokens_dataframe: pd.DataFrame,
+        doc_text: str,
+        doc_tokens: List[PawlsTokenPythonType],
+        page_tokens: Dict[Union[int, str], List[PawlsTokenPythonType]],
+        human_friendly_full_text: str,
+    ) -> None:
         self.pawls_tokens = pawls_tokens
         self.page_dataframe = page_dataframe
         self.lines_dataframe = lines_dataframe
@@ -55,8 +58,6 @@ class PdfDataLayer:
         self.page_tokens = page_tokens
         self.human_friendly_full_text = human_friendly_full_text
         self.log = ""
-        self.pawls_annotations = {}
-        self.span_annotations: dict[str, any] = {}
 
     def get_raw_text_from_span(self, span: TextSpan) -> str:
         return self.doc_text[span["start"] : span["end"]]
@@ -67,7 +68,7 @@ class PdfDataLayer:
         padding: float = 0.1,
         max_bbox_vertical_margin: float = 1,
         max_bbox_horizontal_margin: float = 5,
-    ) -> dict[int, OpenContractsSinglePageAnnotationType]:
+    ) -> Dict[int, OpenContractsSinglePageAnnotationType]:
         """
         Given the start and end index of a string in the document, return the PAWLS tokens for the annotation, split
         across pages. For a given page, the annotation will look like:
@@ -94,10 +95,8 @@ class PdfDataLayer:
             & (self.tokens_dataframe["Char_End"] > span_start)
         ]
 
-        print(f"Found {len(tokens)} tokens to process")
-
-        return_annotations: dict[int, OpenContractsSinglePageAnnotationType] = {}
-        page_tokens = []
+        return_annotations: Dict[int, OpenContractsSinglePageAnnotationType] = {}
+        page_tokens: List[TokenIdPythonType] = []
         page_text = ""
 
         last_page = -1
@@ -252,7 +251,7 @@ class PdfDataLayer:
 
         return return_annotations
 
-    def split_span_on_pages(self, span: TextSpan) -> list[PageAwareTextSpan]:
+    def split_span_on_pages(self, span: TextSpan) -> List[PageAwareTextSpan]:
         """
         Splits the given character-based text span by page, returning a list of
         page-aware spans. These will each contain the slice of the doc_text that
@@ -276,7 +275,7 @@ class PdfDataLayer:
             )
         ]
 
-        page_split_spans: list[PageAwareTextSpan] = []
+        page_split_spans: List[PageAwareTextSpan] = []
 
         for page in pages.iterrows():
             page_idx = page[0]
@@ -323,7 +322,7 @@ class PdfDataLayer:
             "annotationLabel": annotation_label,
             "rawText": raw_text,
             "page": page,
-            "annotation_json": annotation_json,
+            "annotation_json": annotation_json,  # type: ignore
             "annotation_type": AnnotationType.TOKEN_LABEL,
             "parent_id": None,
             "structural": False,
@@ -331,29 +330,29 @@ class PdfDataLayer:
 
 
 def build_translation_layer(
-    pawls_tokens: list[PawlsPagePythonType],
+    pawls_tokens: List[PawlsPagePythonType],
 ) -> PdfDataLayer:
     """
     Builds a PdfDataLayer from PAWLS tokens. Consolidates common equivalent chars so that
     both doc_text and page_tokens match in text transformations (e.g., curly quotes replaced
     with straight quotes).
     """
-    page_tokens = {}
-    doc_tokens = []
-    tokens = []
-    pages = []
-    lines: list[tuple[int, int, int, int]] = []
+    page_tokens: Dict[Union[int, str], List[PawlsTokenPythonType]] = {}
+    doc_tokens: List[PawlsTokenPythonType] = []
+    tokens: List[List[int]] = []
+    pages: List[List[int]] = []
+    lines: List[Tuple[int, int, int, int]] = []
     doc_text = ""
     human_friendly_text = ""
     line_start_char = 0
 
-    last_token_height = -1
+    last_token_height: Union[int, float] = -1
 
     for page_num, page in enumerate(pawls_tokens):
 
         logger.info(f"Looking at page_num {page_num}:\n\n{page}")
 
-        last_y = -1
+        last_y: Union[int, float] = -1
         line_text = ""
         page_tokens[page_num] = []
 

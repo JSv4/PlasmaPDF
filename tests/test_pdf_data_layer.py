@@ -1,25 +1,29 @@
 import json
 import os
 import unittest
+from typing import Any, Dict, List
 
 import pandas as pd
 
 from plasmapdf.models.PdfDataLayer import build_translation_layer
-from plasmapdf.models.types import PawlsPagePythonType, SpanAnnotation, TextSpan
+from plasmapdf.models.types import (
+    PawlsPagePythonType,
+    SpanAnnotation,
+    TextSpan,
+    TokenIdPythonType,
+)
 
 
 class TestPdfDataLayer(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self) -> None:
         # Load test fixtures
         fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "pawls.json")
         with open(fixture_path, "r") as f:
-            cls.pawls_full = json.load(f)
-            cls.pawls_page_0 = cls.pawls_full[0]
+            self.pawls_full = json.load(f)
+            self.pawls_page_0 = self.pawls_full[0]
 
         # Original test data
-        cls.pawls_tokens: list[PawlsPagePythonType] = [
+        self.pawls_tokens: List[PawlsPagePythonType] = [
             {
                 "page": {"width": 612, "height": 792, "index": 0},
                 "tokens": [
@@ -34,16 +38,16 @@ class TestPdfDataLayer(unittest.TestCase):
         ]
 
         # Create both data layers
-        cls.made_up_pdf_data_layer = build_translation_layer(cls.pawls_tokens)
-        cls.pdf_page_0_data_layer = build_translation_layer([cls.pawls_page_0])
-        cls.pdf_full_data_layer = build_translation_layer(cls.pawls_full)
+        self.made_up_pdf_data_layer = build_translation_layer(self.pawls_tokens)
+        self.pdf_page_0_data_layer = build_translation_layer([self.pawls_page_0])
+        self.pdf_full_data_layer = build_translation_layer(self.pawls_full)
 
-    def test_get_raw_text_from_span(self):
+    def test_get_raw_text_from_span(self) -> None:
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
         raw_text = self.made_up_pdf_data_layer.get_raw_text_from_span(span)
         self.assertEqual(raw_text, "This is a sample PDF document")
 
-    def test_convert_doc_span_to_opencontract_annotation_json(self):
+    def test_convert_doc_span_to_opencontract_annotation_json(self) -> None:
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
         annotation_json = self.made_up_pdf_data_layer.convert_doc_span_to_opencontract_annotation_json(
             span
@@ -54,7 +58,7 @@ class TestPdfDataLayer(unittest.TestCase):
         self.assertIn("rawText", annotation_json[0])
         self.assertIn("tokensJsons", annotation_json[0])
 
-    def test_split_span_on_pages(self):
+    def test_split_span_on_pages(self) -> None:
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
         page_aware_spans = self.made_up_pdf_data_layer.split_span_on_pages(span)
         print(page_aware_spans)
@@ -62,7 +66,7 @@ class TestPdfDataLayer(unittest.TestCase):
         self.assertEqual(page_aware_spans[0]["page"], 0)
         self.assertEqual(page_aware_spans[0]["text"], "This is a sample PDF document")
 
-    def test_create_opencontract_annotation_from_span(self):
+    def test_create_opencontract_annotation_from_span(self) -> None:
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
         span_annotation = SpanAnnotation(span=span, annotation_label="SAMPLE_TEXT")
         oc_annotation = (
@@ -75,22 +79,22 @@ class TestPdfDataLayer(unittest.TestCase):
         self.assertEqual(oc_annotation["rawText"], "This is a sample PDF document")
         self.assertEqual(oc_annotation["page"], 0)
 
-    def test_doc_text(self):
+    def test_doc_text(self) -> None:
         self.assertEqual(
             self.made_up_pdf_data_layer.doc_text, "This is a sample PDF document."
         )
 
-    def test_human_friendly_full_text(self):
+    def test_human_friendly_full_text(self) -> None:
         self.assertEqual(
             self.made_up_pdf_data_layer.human_friendly_full_text,
             "This is a sample PDF document.",
         )
 
-    def test_page_dataframe(self):
+    def test_page_dataframe(self) -> None:
         self.assertIsInstance(self.made_up_pdf_data_layer.page_dataframe, pd.DataFrame)
         self.assertEqual(len(self.made_up_pdf_data_layer.page_dataframe), 1)  # One page
 
-    def test_tokens_dataframe(self):
+    def test_tokens_dataframe(self) -> None:
         self.assertIsInstance(
             self.made_up_pdf_data_layer.tokens_dataframe, pd.DataFrame
         )
@@ -98,13 +102,13 @@ class TestPdfDataLayer(unittest.TestCase):
             len(self.made_up_pdf_data_layer.tokens_dataframe), 6
         )  # 6 tokens
 
-    def test_page_tokens(self):
+    def test_page_tokens(self) -> None:
         self.assertIn(0, self.made_up_pdf_data_layer.page_tokens)
         self.assertEqual(
             len(self.made_up_pdf_data_layer.page_tokens[0]), 6
         )  # 6 tokens on page 0
 
-    def test_get_raw_text_from_span_eton(self):
+    def test_get_raw_text_from_span_eton(self) -> None:
         """Test that a span containing 'Eton' at position 533-537 is correctly retrieved"""
         span = TextSpan(id="2", start=533, end=537, text="ETON")
         raw_text = self.pdf_page_0_data_layer.get_raw_text_from_span(span)
@@ -118,7 +122,7 @@ class TestPdfDataLayer(unittest.TestCase):
         )
         print(f"oc_annotation: {oc_annotation}")
 
-        oc_annotation_idx = oc_annotation["annotation_json"][0]["tokensJsons"][0][
+        oc_annotation_idx = oc_annotation["annotation_json"][0]["tokensJsons"][0][  # type: ignore
             "tokenIndex"
         ]
 
