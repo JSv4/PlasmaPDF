@@ -1,7 +1,7 @@
 #  Copyright (C) 2025  John Scrudato
 import logging
 import uuid
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -60,7 +60,7 @@ class PdfDataLayer:
         self.log = ""
 
     def get_raw_text_from_span(self, span: TextSpan) -> str:
-        return self.doc_text[span["start"] : span["end"]]
+        return self.doc_text[span["start"]: span["end"]]
 
     def convert_doc_span_to_opencontract_annotation_json(
         self,

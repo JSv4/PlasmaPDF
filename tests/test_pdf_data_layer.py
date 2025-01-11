@@ -1,7 +1,7 @@
 import json
 import os
 import unittest
-from typing import Any, Dict, List
+from typing import List
 
 import pandas as pd
 
@@ -10,7 +10,6 @@ from plasmapdf.models.types import (
     PawlsPagePythonType,
     SpanAnnotation,
     TextSpan,
-    TokenIdPythonType,
 )
 
 
