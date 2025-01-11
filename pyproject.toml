@@ -77,17 +77,12 @@ format = "isort plasmapdf tests && black plasmapdf tests"
 lint = "flake8 plasmapdf tests"
 
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ["py38"]
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-
-[tool.flake8]
-max-line-length = 120
-extend-ignore = "E203,W503,E501"
-select = "B,C,E,F,W,T4,B9"
 
 [tool.mypy]
 python_version = "3.8"
