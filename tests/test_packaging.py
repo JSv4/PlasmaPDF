@@ -88,11 +88,7 @@ class TestPackageJobResults(unittest.TestCase):
         )
 
         self.assertIsInstance(result, dict)
-        self.assertTrue(
-            is_dict_instance_of_typed_dict(
-                result, OpenContractsGeneratedCorpusPythonType
-            )
-        )
+        self.assertTrue(is_dict_instance_of_typed_dict(result, OpenContractsGeneratedCorpusPythonType))
 
         self.assertIn("annotated_docs", result)
         self.assertIn("doc_labels", result)
@@ -114,17 +110,11 @@ class TestPackageJobResults(unittest.TestCase):
         )
 
         self.assertIsInstance(result, dict)
-        self.assertTrue(
-            is_dict_instance_of_typed_dict(
-                result, OpenContractsGeneratedCorpusPythonType
-            )
-        )
+        self.assertTrue(is_dict_instance_of_typed_dict(result, OpenContractsGeneratedCorpusPythonType))
         self.assertEqual(len(result["annotated_docs"]), 0)
 
     def test_package_job_results_invalid_input(self) -> None:
-        invalid_job_results = {
-            1: "Invalid annotations"  # This should be a dict, not a string
-        }
+        invalid_job_results = {1: "Invalid annotations"}  # This should be a dict, not a string
 
         with self.assertRaises(ValueError):
             package_job_results_to_oc_generated_corpus_type(

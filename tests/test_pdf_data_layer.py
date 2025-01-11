@@ -6,11 +6,7 @@ from typing import List
 import pandas as pd
 
 from plasmapdf.models.PdfDataLayer import build_translation_layer
-from plasmapdf.models.types import (
-    PawlsPagePythonType,
-    SpanAnnotation,
-    TextSpan,
-)
+from plasmapdf.models.types import PawlsPagePythonType, SpanAnnotation, TextSpan
 
 
 class TestPdfDataLayer(unittest.TestCase):
@@ -48,9 +44,7 @@ class TestPdfDataLayer(unittest.TestCase):
 
     def test_convert_doc_span_to_opencontract_annotation_json(self) -> None:
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
-        annotation_json = self.made_up_pdf_data_layer.convert_doc_span_to_opencontract_annotation_json(
-            span
-        )
+        annotation_json = self.made_up_pdf_data_layer.convert_doc_span_to_opencontract_annotation_json(span)
         self.assertIsInstance(annotation_json, dict)
         self.assertIn(0, annotation_json)  # Check if page 0 is in the annotation
         self.assertIn("bounds", annotation_json[0])
@@ -68,20 +62,14 @@ class TestPdfDataLayer(unittest.TestCase):
     def test_create_opencontract_annotation_from_span(self) -> None:
         span = TextSpan(id="1", start=0, end=29, text="This is a sample PDF document")
         span_annotation = SpanAnnotation(span=span, annotation_label="SAMPLE_TEXT")
-        oc_annotation = (
-            self.made_up_pdf_data_layer.create_opencontract_annotation_from_span(
-                span_annotation
-            )
-        )
+        oc_annotation = self.made_up_pdf_data_layer.create_opencontract_annotation_from_span(span_annotation)
         self.assertIsInstance(oc_annotation, dict)
         self.assertEqual(oc_annotation["annotationLabel"], "SAMPLE_TEXT")
         self.assertEqual(oc_annotation["rawText"], "This is a sample PDF document")
         self.assertEqual(oc_annotation["page"], 0)
 
     def test_doc_text(self) -> None:
-        self.assertEqual(
-            self.made_up_pdf_data_layer.doc_text, "This is a sample PDF document."
-        )
+        self.assertEqual(self.made_up_pdf_data_layer.doc_text, "This is a sample PDF document.")
 
     def test_human_friendly_full_text(self) -> None:
         self.assertEqual(
@@ -94,18 +82,12 @@ class TestPdfDataLayer(unittest.TestCase):
         self.assertEqual(len(self.made_up_pdf_data_layer.page_dataframe), 1)  # One page
 
     def test_tokens_dataframe(self) -> None:
-        self.assertIsInstance(
-            self.made_up_pdf_data_layer.tokens_dataframe, pd.DataFrame
-        )
-        self.assertEqual(
-            len(self.made_up_pdf_data_layer.tokens_dataframe), 6
-        )  # 6 tokens
+        self.assertIsInstance(self.made_up_pdf_data_layer.tokens_dataframe, pd.DataFrame)
+        self.assertEqual(len(self.made_up_pdf_data_layer.tokens_dataframe), 6)  # 6 tokens
 
     def test_page_tokens(self) -> None:
         self.assertIn(0, self.made_up_pdf_data_layer.page_tokens)
-        self.assertEqual(
-            len(self.made_up_pdf_data_layer.page_tokens[0]), 6
-        )  # 6 tokens on page 0
+        self.assertEqual(len(self.made_up_pdf_data_layer.page_tokens[0]), 6)  # 6 tokens on page 0
 
     def test_get_raw_text_from_span_eton(self) -> None:
         """Test that a span containing 'Eton' at position 533-537 is correctly retrieved"""
@@ -114,23 +96,15 @@ class TestPdfDataLayer(unittest.TestCase):
         self.assertEqual(raw_text, "ETON")
 
         span_annotation = SpanAnnotation(span=span, annotation_label="REDACT")
-        oc_annotation = (
-            self.pdf_page_0_data_layer.create_opencontract_annotation_from_span(
-                span_annotation
-            )
-        )
+        oc_annotation = self.pdf_page_0_data_layer.create_opencontract_annotation_from_span(span_annotation)
         print(f"oc_annotation: {oc_annotation}")
 
-        oc_annotation_idx = oc_annotation["annotation_json"][0]["tokensJsons"][0][  # type: ignore
-            "tokenIndex"
-        ]
+        oc_annotation_idx = oc_annotation["annotation_json"][0]["tokensJsons"][0]["tokenIndex"]  # type: ignore
 
         # Verify the tokens exist in the underlying data layer
         tokens_df = self.pdf_page_0_data_layer.tokens_dataframe
         print(f"~~~ tokens_df: {tokens_df}")
-        matching_tokens = tokens_df[
-            (tokens_df["Char_Start"] <= 537) & (tokens_df["Char_End"] >= 533)
-        ]
+        matching_tokens = tokens_df[(tokens_df["Char_Start"] <= 537) & (tokens_df["Char_End"] >= 533)]
         self.assertFalse(matching_tokens.empty, "Should find tokens for 'Eton'")
 
         match_idx = matching_tokens.iloc[0]["Token_Id"]
@@ -163,9 +137,7 @@ class TestPdfDataLayer(unittest.TestCase):
             first_three_next = [tok["text"] for tok in next_page_tokens[:3]]
             joined_text = " ".join(last_three_current + first_three_next)
 
-            print(
-                f"Look for substring that breaks on pages {page_index}-{page_index + 1}: {joined_text}"
-            )
+            print(f"Look for substring that breaks on pages {page_index}-{page_index + 1}: {joined_text}")
 
             start_ix: int = doc_text.find(joined_text)
             self.assertNotEqual(
@@ -181,14 +153,8 @@ class TestPdfDataLayer(unittest.TestCase):
                 end=end_ix,
                 text=joined_text,
             )
-            span_annotation = SpanAnnotation(
-                span=span, annotation_label="PAGE_BREAK_TEST"
-            )
-            oc_annotation = (
-                self.pdf_full_data_layer.create_opencontract_annotation_from_span(
-                    span_annotation
-                )
-            )
+            span_annotation = SpanAnnotation(span=span, annotation_label="PAGE_BREAK_TEST")
+            oc_annotation = self.pdf_full_data_layer.create_opencontract_annotation_from_span(span_annotation)
 
             # We expect two-page entries in annotation_json because the span crosses a page boundary
             self.assertEqual(

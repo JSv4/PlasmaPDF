@@ -54,9 +54,7 @@ class PawlsPageBoundaryPythonType(TypedDict):
 
 class FunsdTokenType(TypedDict):
     # From Funsd paper: box = [xlef t, ytop, xright, ybottom]
-    box: Tuple[
-        float, float, float, float
-    ]  # This will be serialized to list when exported as JSON
+    box: Tuple[float, float, float, float]  # This will be serialized to list when exported as JSON
     text: str
 
 
@@ -173,9 +171,7 @@ class OpenContractsAnnotationPythonType(TypedDict):
     annotationLabel: str
     rawText: str
     page: int
-    annotation_json: Union[
-        Dict[Union[int, str], OpenContractsSinglePageAnnotationType], TextSpanData
-    ]
+    annotation_json: Union[Dict[Union[int, str], OpenContractsSinglePageAnnotationType], TextSpanData]
     parent_id: Optional[Union[str, int]]
     annotation_type: AnnotationType
     structural: bool

@@ -60,7 +60,7 @@ class PdfDataLayer:
         self.log = ""
 
     def get_raw_text_from_span(self, span: TextSpan) -> str:
-        return self.doc_text[span["start"]: span["end"]]
+        return self.doc_text[span["start"] : span["end"]]
 
     def convert_doc_span_to_opencontract_annotation_json(
         self,
@@ -91,8 +91,7 @@ class PdfDataLayer:
 
         # logger.info(f"Get tokens in char range {span_start} - {span_end}")
         tokens = self.tokens_dataframe[
-            (self.tokens_dataframe["Char_Start"] < span_end)
-            & (self.tokens_dataframe["Char_End"] > span_start)
+            (self.tokens_dataframe["Char_Start"] < span_end) & (self.tokens_dataframe["Char_End"] > span_start)
         ]
 
         return_annotations: Dict[int, OpenContractsSinglePageAnnotationType] = {}
@@ -129,8 +128,7 @@ class PdfDataLayer:
             # Only log the "current bbox" if it has been initialized
             if bbox_top != -1:
                 logger.debug(
-                    f"    Current bbox: t:{bbox_top:.2f} b:{bbox_bottom:.2f} "
-                    f"l:{bbox_left:.2f} r:{bbox_right:.2f}"
+                    f"    Current bbox: t:{bbox_top:.2f} b:{bbox_bottom:.2f} " f"l:{bbox_left:.2f} r:{bbox_right:.2f}"
                 )
 
             # Update bounding box top
@@ -145,27 +143,21 @@ class PdfDataLayer:
             if bbox_bottom == -1:
                 bbox_bottom = token_bottom
             elif token_bottom > bbox_bottom:
-                logger.debug(
-                    f"    New bottom bound: {token_bottom:.2f} (was {bbox_bottom:.2f})"
-                )
+                logger.debug(f"    New bottom bound: {token_bottom:.2f} (was {bbox_bottom:.2f})")
                 bbox_bottom = token_bottom
 
             # Update bounding box left
             if bbox_left == -1:
                 bbox_left = token_left
             elif token_left < bbox_left:
-                logger.debug(
-                    f"    New left bound: {token_left:.2f} (was {bbox_left:.2f})"
-                )
+                logger.debug(f"    New left bound: {token_left:.2f} (was {bbox_left:.2f})")
                 bbox_left = token_left
 
             # Update bounding box right
             if bbox_right == -1:
                 bbox_right = token_right
             elif token_right > bbox_right:
-                logger.debug(
-                    f"    New right bound: {token_right:.2f} (was {bbox_right:.2f})"
-                )
+                logger.debug(f"    New right bound: {token_right:.2f} (was {bbox_right:.2f})")
                 bbox_right = token_right
 
             # If we've switched to a new page, finalize the old page's bbox, write it out,
@@ -176,14 +168,8 @@ class PdfDataLayer:
                     # Calculate final bounding box area for last_page
                     bbox_height = bbox_bottom - bbox_top
                     bbox_width = bbox_right - bbox_left
-                    logger.info(
-                        f"    Final bbox for page {last_page}: "
-                        f"{bbox_height:.2f}h x {bbox_width:.2f}w"
-                    )
-                    logger.info(
-                        f"    Padding applied: {padding * bbox_height:.2f}v, "
-                        f"{padding * bbox_width:.2f}h"
-                    )
+                    logger.info(f"    Final bbox for page {last_page}: " f"{bbox_height:.2f}h x {bbox_width:.2f}w")
+                    logger.info(f"    Padding applied: {padding * bbox_height:.2f}v, " f"{padding * bbox_width:.2f}h")
 
                     return_annotations[last_page] = {
                         "bounds": {
@@ -213,9 +199,7 @@ class PdfDataLayer:
                     page_text = token_obj["text"]
                 else:
                     page_text += " " + token_obj["text"]
-                page_tokens.append(
-                    {"pageIndex": token_page, "tokenIndex": token_page_id}
-                )
+                page_tokens.append({"pageIndex": token_page, "tokenIndex": token_page_id})
 
         # After the loop, finalize the page bounding box for the last page:
         if last_page != -1:  # If we had any tokens at all
@@ -261,18 +245,9 @@ class PdfDataLayer:
         span_end = span["end"]
 
         pages = self.page_dataframe[
-            (
-                (span_start >= self.page_dataframe["Start"])
-                & (span_start <= self.page_dataframe["End"])
-            )
-            | (
-                (span_start < self.page_dataframe["Start"])
-                & (span_end > self.page_dataframe["End"])
-            )
-            | (
-                (span_end >= self.page_dataframe["Start"])
-                & (span_end <= self.page_dataframe["End"])
-            )
+            ((span_start >= self.page_dataframe["Start"]) & (span_start <= self.page_dataframe["End"]))
+            | ((span_start < self.page_dataframe["Start"]) & (span_end > self.page_dataframe["End"]))
+            | ((span_end >= self.page_dataframe["Start"]) & (span_end <= self.page_dataframe["End"]))
         ]
 
         page_split_spans: List[PageAwareTextSpan] = []
@@ -376,9 +351,7 @@ def build_translation_layer(
 
             # Heuristic to detect line breaks
             if abs(new_y - last_y) > (0.5 * max(new_token_height, last_token_height)):
-                human_friendly_text += (
-                    ("\n" + token_text) if len(human_friendly_text) > 0 else token_text
-                )
+                human_friendly_text += ("\n" + token_text) if len(human_friendly_text) > 0 else token_text
                 lines.append(
                     (
                         page_num,
@@ -392,18 +365,14 @@ def build_translation_layer(
             else:
                 line_text += " " if len(line_text) > 0 else ""
                 line_text += token_text
-                human_friendly_text += (
-                    (" " + token_text) if len(human_friendly_text) > 0 else token_text
-                )
+                human_friendly_text += (" " + token_text) if len(human_friendly_text) > 0 else token_text
 
             start_length = len(doc_text)
             doc_text += " " if len(doc_text) else ""
             doc_text += token_text
             end_length = len(doc_text)
 
-            tokens.append(
-                [page_num, len(page_tokens[page_num]) - 1, start_length + 1, end_length]
-            )
+            tokens.append([page_num, len(page_tokens[page_num]) - 1, start_length + 1, end_length])
 
             last_y = new_y
             if new_token_height > 0:
@@ -418,12 +387,8 @@ def build_translation_layer(
         )
 
     page_dim_df = pd.DataFrame(pages, columns=["Page", "Start", "End"], dtype=object)
-    line_dim_df = pd.DataFrame(
-        lines, columns=["Page", "Line", "Char_Start", "Char_End"], dtype=object
-    )
-    token_dim_df = pd.DataFrame(
-        tokens, columns=["Page", "Token_Id", "Char_Start", "Char_End"], dtype=object
-    )
+    line_dim_df = pd.DataFrame(lines, columns=["Page", "Line", "Char_Start", "Char_End"], dtype=object)
+    token_dim_df = pd.DataFrame(tokens, columns=["Page", "Token_Id", "Char_Start", "Char_End"], dtype=object)
 
     return PdfDataLayer(
         pawls_tokens=pawls_tokens,

@@ -45,16 +45,10 @@ def package_job_results_to_oc_generated_corpus_type(
         "label_set": suggested_label_set,
     }
 
-    logger.info(
-        f"package_job_results_to_oc_generated_corpus_type() - oc_corpus_type_dict: {oc_corpus_type_dict}"
-    )
+    logger.info(f"package_job_results_to_oc_generated_corpus_type() - oc_corpus_type_dict: {oc_corpus_type_dict}")
 
-    if not is_dict_instance_of_typed_dict(
-        oc_corpus_type_dict, OpenContractsGeneratedCorpusPythonType
-    ):
-        raise ValueError(
-            "Job return value does not conform to OpenContractsGeneratedCorpusPythonType"
-        )
+    if not is_dict_instance_of_typed_dict(oc_corpus_type_dict, OpenContractsGeneratedCorpusPythonType):
+        raise ValueError("Job return value does not conform to OpenContractsGeneratedCorpusPythonType")
 
     logger.info(
         f"package_job_results_to_oc_generated_corpus_type() - OK... return transformed data... {oc_corpus_type_dict}"
