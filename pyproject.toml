@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Annotation generator and search tools for PDF"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = []
 authors = [
   { name = "JSv4", email = "scrudato@umich.edu" },
@@ -16,8 +16,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
